@@ -27,14 +27,15 @@ import time
 import termios
 from struct import *
 
-logger = logging.getLogger('NIBE')
 
-class NIBE(SmartPlugin):
+
+class Nibe(SmartPlugin):
 
     ALLOW_MULTIINSTANCE = False
     PLUGIN_VERSION = "1.2.1"
 
     def __init__(self, smarthome, serialport):
+        self.logger = logging.getLogger('Nibe')
         self._sh = smarthome
         self._nibe_regs = {}
         self._serial = serial.Serial(serialport, 19200, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, timeout=3)
@@ -70,7 +71,7 @@ class NIBE(SmartPlugin):
                 for i in frm[:-1]:
                     crc ^= i
                 if crc != frm[-1]:
-                    logger.warning("frame crc error")
+                    self.logger.warning("frame crc error")
                     continue
 
                 msg = frm[4:-1]
@@ -91,13 +92,13 @@ class NIBE(SmartPlugin):
                         continue
 
                     value = self._decode(reg, raw)
-                    logger.debug("update_item: reg:{0} = {1}".format(reg,value))
+                    self.logger.debug("update_item: reg:{0} = {1}".format(reg,value))
                     self._nibe_regs[reg]['raw'] = raw
                     for item in self._nibe_regs[reg]['items']:
                         item(value, 'NIBE', 'REG {}'.format(reg))
 
         except Exception as e:
-            logger.warning("nibe: {0}".format(e))
+            self.logger.warning("nibe: {0}".format(e))
 
     def stop(self):
         self.alive = False
@@ -105,7 +106,7 @@ class NIBE(SmartPlugin):
 
     def parse_item(self, item):
         if 'nibe_reg' in item.conf:
-            logger.debug("parse item: {0}".format(item))
+            self.logger.debug("parse item: {0}".format(item))
             nibe_reg = int(item.conf['nibe_reg'])
             if not nibe_reg in self._nibe_regs:
                 self._nibe_regs[nibe_reg] = {'items': [item], 'logics': [], 'raw':0}
